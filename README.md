@@ -1,6 +1,6 @@
 # MUSE Hair Studio
 
-Demo-Website für ein Friseurstudio (Deutsch, mit russischer Version unter `ru.html`).
+Demo-Website für ein Friseurstudio (Deutsch).
 
 - Titelbild: Die Kamera umkreist das Model beim Scrollen.
 - Leistungen und Preise, Galerie, Team, Online-Termin, FAQ, Kontakt.
