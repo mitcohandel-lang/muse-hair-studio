@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MUSE Hair Studio</title>
+<meta name="description" content="MUSE Hair Studio – Haarschnitt, Coloration, Styling und Pflege.">
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Manrope:wght@400;500;600&display=swap">
+<style>
+/* Layout: полноэкранные слайды со snap-прокруткой поверх фиксированной сцены. Модель стоит в центре сцены,
+   камера обходит её по кругу (пять ракурсов из проекта MUSE), медное кольцо и сдвиг кадра меняются от слайда к слайду,
+   заголовки собираются по буквам. Палитра и шрифт заголовков взяты из проекта клиента; сознательно один светлый вид. */
+:root{
+  --paper:#f5f0e9;
+  --paper-deep:#e9dfd3;
+  --ink:#282522;
+  --muted:#7c736b;
+  --copper:#9c6048;
+  --copper-soft:#c79376;
+  --line:rgba(58,49,42,.14);
+  --serif:"Playfair Display", Georgia, "Times New Roman", serif;
+  --sans:"Manrope", "Segoe UI", system-ui, sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-snap-type:y proximity;scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.7;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--paper)}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:1px solid var(--copper);outline-offset:4px}
+em{font-style:italic;color:var(--copper);font-weight:400}
+
+/* ---------- сцена ---------- */
+.stage{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  background:linear-gradient(110deg,#f7f3ed 0%,#f4eee7 45%,#e9dfd4 100%)}
+.wash{position:absolute;inset:0;background:radial-gradient(ellipse at var(--gx,68%) 56%,rgba(199,160,133,.22),transparent 42%)}
+.cols{position:absolute;inset:0;background-image:linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:calc(100%/6) 100%;will-change:background-position}
+.env{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pano{position:absolute;inset:0;background:url("assets/salon-pano.webp") 0 100%/auto 100% repeat-x;will-change:background-position}
+.pano-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(245,240,233,.92) 0%,rgba(245,240,233,.7) 30%,rgba(245,240,233,.25) 58%,rgba(245,240,233,.12) 100%)}
+.pano-shade.flip{transform:scaleX(-1)}
+@media (max-width:820px){.pano-shade.flip{display:none}.pano-shade{background:linear-gradient(180deg,rgba(245,240,233,.92) 0%,rgba(245,240,233,.75) 40%,rgba(245,240,233,.2) 70%)}}
+.ring{position:absolute;left:0;top:0;border-radius:50%;border:1.5px solid var(--copper-soft);will-change:transform,width,height;
+  box-shadow:0 0 0 1px rgba(255,255,255,.35),0 0 26px rgba(199,147,118,.55),0 0 80px rgba(199,147,118,.25),inset 0 0 26px rgba(199,147,118,.25)}
+.halo{position:absolute;left:0;top:0;border-radius:50%;background:radial-gradient(ellipse,rgba(187,143,116,.26),rgba(209,184,164,.12) 42%,transparent 70%);filter:blur(12px);will-change:transform}
+.model{position:absolute;left:0;top:0;aspect-ratio:1312/1199;will-change:transform}
+.views{position:absolute;inset:0;transform-origin:50% 60%;will-change:transform}
+.views img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;opacity:0;max-width:none;user-select:none;-webkit-user-drag:none;transform-origin:50% 60%;backface-visibility:hidden;z-index:1}
+.views img.cur{opacity:1;z-index:1}
+.views img.out{opacity:0;z-index:2;transition:opacity .15s linear}
+.views img.out.go{opacity:0}
+.views img.out:not(.go){opacity:1}
+
+/* ---------- шапка ---------- */
+header{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:40;border-bottom:1px solid var(--line)}
+header .bar{display:flex;align-items:center;gap:24px;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (min-width:900px){header .bar{padding-left:max(6.4vw,env(safe-area-inset-left,0px));padding-right:max(6.4vw,env(safe-area-inset-right,0px))}}
+.wordmark{display:flex;flex-direction:column;gap:4px;font-family:var(--serif);font-size:22px;letter-spacing:.22em;line-height:1}
+.wordmark span{font-family:var(--sans);font-size:8px;letter-spacing:.32em;color:var(--muted)}
+header nav{display:flex;gap:clamp(24px,3.5vw,52px);margin-left:auto;margin-right:24px;font-size:12px;color:var(--muted)}
+header nav a{position:relative;padding-bottom:6px;transition:color .2s}
+header nav a:hover,header nav a.cur{color:var(--ink)}
+header nav a.cur::after{content:"";position:absolute;left:0;bottom:0;width:16px;height:1px;background:var(--copper)}
+.book{padding:11px 16px;border:1px solid rgba(82,65,53,.32);font-size:11px;letter-spacing:.04em;transition:background .2s,color .2s}
+.book:hover{background:var(--ink);color:#fffaf5}
+.book span,.btn span{margin-left:14px;color:var(--copper)}
+@media (max-width:820px){header nav{display:none}.book{margin-left:auto}}
+
+/* ---------- пагинация и угол поворота ---------- */
+.pager{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);z-index:40;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+@media (min-width:900px){.pager{left:max(2.6vw,env(safe-area-inset-left,0px))}}
+.pager button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.14em;color:var(--muted);font-variant-numeric:tabular-nums}
+.pager button i{display:block;width:4px;height:4px;border-radius:50%;background:var(--muted);transition:all .4s}
+.pager button span{opacity:0;transform:translateX(-6px);transition:all .4s}
+.pager button[aria-current="true"]{color:var(--ink)}
+.pager button[aria-current="true"] i{width:26px;height:1px;border-radius:0;background:var(--copper)}
+.pager button[aria-current="true"] span{opacity:1;transform:none}
+.pager button:focus-visible{outline:1px solid var(--copper);outline-offset:4px}
+.turn{position:fixed;z-index:40;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:11px;pointer-events:none}
+@media (min-width:900px){.turn{right:max(5.8vw,env(safe-area-inset-right,0px))}}
+.turn-ring{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:conic-gradient(var(--copper) var(--p,0%),rgba(62,49,41,.14) 0)}
+.turn-ring::before{content:"";grid-area:1/1;width:44px;height:44px;border-radius:50%;background:var(--paper)}
+.turn-ring span{z-index:1;grid-area:1/1;font-size:9px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.turn-label{color:var(--muted);font-size:8px;letter-spacing:.16em}
+
+/* ---------- слайды ---------- */
+main{position:relative;z-index:10}
+.slide{position:relative;height:100vh;scroll-snap-align:start}
+.txt{position:absolute;top:50%;transform:translateY(-46%);width:min(36vw,470px);min-width:0}
+.left{left:clamp(64px,9vw,160px)}
+.right{right:clamp(64px,9vw,160px)}
+.eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 22px;color:var(--muted);font-size:9px;letter-spacing:.24em;text-transform:uppercase}
+.eyebrow b{display:block;width:26px;height:1px;background:var(--copper)}
+h1,h2{font-family:var(--serif);font-weight:400;margin:0;letter-spacing:-.04em;line-height:1}
+h1{font-size:clamp(48px,6vw,92px)}
+h2{font-size:clamp(40px,4.8vw,74px)}
+.lead{margin:22px 0 0;color:var(--muted);font-size:13px;max-width:38ch}
+.btn{display:inline-flex;align-items:center;justify-content:space-between;min-width:200px;margin-top:28px;padding:14px 18px;border:1px solid var(--ink);font-size:11px;letter-spacing:.04em;background:transparent;transition:color .25s,background .25s}
+.btn:hover{background:var(--ink);color:#fffaf5}
+.btn:hover span{color:#ddb8a4}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:30px;border-top:1px solid var(--line);max-width:420px}
+.facts div{padding:14px 12px 0 0;min-width:0}
+.facts dt{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.facts dd{margin:4px 0 0;font-family:var(--serif);font-size:20px;font-variant-numeric:tabular-nums}
+.facts dd small{font-family:var(--sans);font-size:10px;color:var(--muted);margin-left:2px}
+.tag{margin:26px 0 0;padding-top:14px;border-top:1px solid var(--line);max-width:420px;color:var(--copper);font-size:11px;font-weight:500;letter-spacing:.04em}
+.cue{position:absolute;left:clamp(64px,9vw,160px);bottom:calc(30px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;color:var(--muted);font-size:8px;letter-spacing:.18em;text-transform:uppercase}
+.cue i{position:relative;display:block;width:36px;height:1px;overflow:hidden;background:rgba(76,63,55,.25)}
+.cue i::after{content:"";position:absolute;inset:0;background:var(--copper);transform:scaleX(.4);transform-origin:left;animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scaleX(.25)}50%{transform:scaleX(1)}}
+.note{position:absolute;left:clamp(64px,9vw,160px);bottom:calc(26px + env(safe-area-inset-bottom,0px));font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+
+/* побуквенное появление */
+.w{display:inline-block;white-space:nowrap}
+.c{display:inline-block;transition:transform .9s cubic-bezier(.2,.75,.1,1),opacity .9s,filter .9s;transition-delay:calc(var(--i)*24ms + var(--d,0ms))}
+.fx{transition:transform 1s cubic-bezier(.2,.75,.1,1),opacity 1s;transition-delay:var(--d,0ms)}
+.slide:not(.in) .c{transform:translateY(.55em) rotate(3deg);opacity:0;filter:blur(6px);transition-duration:.35s;transition-delay:0ms}
+.slide:not(.in) .fx{transform:translateY(16px);opacity:0;transition-duration:.35s;transition-delay:0ms}
+
+@media (max-width:820px){
+  .txt,.left,.right{left:max(20px,env(safe-area-inset-left,0px));right:max(20px,env(safe-area-inset-right,0px));top:calc(96px + env(safe-area-inset-top,0px));transform:none;width:auto}
+  h1{font-size:clamp(42px,12vw,60px)}
+  h2{font-size:clamp(34px,10vw,50px)}
+  .lead{font-size:12px;margin-top:14px}
+  .eyebrow{margin-bottom:14px}
+  .facts{margin-top:18px}
+  .btn{margin-top:18px}
+  .pager{display:none}
+  .cue,.note{left:max(20px,env(safe-area-inset-left,0px))}
+  .txt{text-shadow:0 0 18px rgba(245,240,233,.9)}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .c,.fx{transition:none!important}
+  .cue i::after{animation:none}
+}
+
+/* ================= разделы сайта под обложкой ================= */
+header{transition:background .3s,border-color .3s}
+header.solid{background:rgba(245,240,233,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+header.solid .bar{padding-block:16px}
+.pager,.turn{transition:opacity .3s}
+.past .pager,.past .turn{opacity:0;pointer-events:none}
+.sec{position:relative;z-index:10;overflow-x:clip;background:var(--paper);padding-block:clamp(80px,11vw,140px)}
+.sec.alt{background:#efe7dd}
+.sec.dark{background:#2e2824;color:#f3ece5}
+.sec.dark .lead,.sec.dark .eyebrow{color:#c2b5aa}
+.sec.dark em{color:var(--copper-soft)}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+@media (min-width:900px){.wrap{padding-left:max(48px,env(safe-area-inset-left,0px));padding-right:max(48px,env(safe-area-inset-right,0px))}}
+.sec h2{font-size:clamp(38px,4.6vw,64px)}
+.sec h3{font-family:var(--serif);font-weight:400;font-size:24px;margin:0;letter-spacing:-.02em;line-height:1.15}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;flex-wrap:wrap;margin-bottom:48px}
+.sec-head .lead{margin:0;max-width:40ch}
+.rv{transition:transform 1s cubic-bezier(.2,.75,.1,1),opacity 1s}
+.rv.pre{transform:translateY(36px);opacity:0}
+figure{margin:0}
+figure img{display:block;width:100%;height:100%;object-fit:cover}
+
+/* о студии */
+.about{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(32px,6vw,90px);align-items:center}
+.about-pic{aspect-ratio:4/5;overflow:hidden;max-width:100%}
+.about-pic img{object-position:62% 50%}
+.points{list-style:none;margin:36px 0 0;padding:0;border-top:1px solid var(--line)}
+.points li{display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.points b{font-family:var(--serif);font-weight:400;font-size:18px}
+.points span{color:var(--muted);font-size:13px}
+
+/* услуги */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.tabs button,.filters button{font:inherit;font-size:12px;letter-spacing:.04em;padding:10px 18px;border:1px solid rgba(82,65,53,.3);background:transparent;color:var(--ink);cursor:pointer;transition:background .2s,color .2s}
+.tabs button[aria-selected="true"],.filters button[aria-pressed="true"]{background:var(--ink);color:#fffaf5;border-color:var(--ink)}
+.tabs button:hover,.filters button:hover{border-color:var(--copper)}
+.price{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 110px 130px;gap:16px;align-items:baseline;padding:20px 0;border-bottom:1px solid var(--line)}
+.row h3{font-size:22px}
+.row p{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:56ch}
+.row .dur{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.row .cost{font-family:var(--serif);font-size:22px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .cost small{font-family:var(--sans);font-size:11px;color:var(--muted);margin-right:4px}
+@media (max-width:640px){.row{grid-template-columns:minmax(0,1fr) auto}.row .dur{grid-column:1}.row .cost{grid-row:1;grid-column:2}}
+
+/* галерея */
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.grid{columns:3 280px;column-gap:16px}
+.tile{break-inside:avoid;margin:0 0 16px;position:relative;display:block;width:100%;padding:0;border:0;background:#e6ddd2;cursor:zoom-in;overflow:hidden;text-align:left;color:#fffaf5}
+.tile img{display:block;width:100%;height:auto;transition:transform .9s cubic-bezier(.2,.75,.1,1)}
+.tile:hover img{transform:scale(1.04)}
+.tile span{position:absolute;left:0;right:0;bottom:0;padding:28px 16px 14px;font-size:12px;letter-spacing:.04em;background:linear-gradient(transparent,rgba(30,24,20,.55));opacity:0;transition:opacity .3s}
+.tile:hover span,.tile:focus-visible span{opacity:1}
+.tile[hidden]{display:none}
+.lb{position:fixed;inset:0;z-index:100;background:rgba(28,23,20,.94);display:grid;place-items:center;padding:calc(56px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(56px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.lb img{max-width:min(1200px,100%);max-height:calc(100vh - 140px);width:auto;height:auto;object-fit:contain}
+.lb p{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom,0px));text-align:center;color:#d9cdc2;font-size:13px;margin:0}
+.lb button{position:absolute;background:transparent;border:1px solid rgba(243,236,229,.3);color:#f3ece5;font:inherit;font-size:20px;width:46px;height:46px;cursor:pointer}
+.lb .x{top:calc(14px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px))}
+.lb .pv{left:max(16px,env(safe-area-inset-left,0px));top:50%}
+.lb .nx{right:max(16px,env(safe-area-inset-right,0px));top:50%}
+
+/* шаги */
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
+.steps li{padding:26px 22px 0 0;border-right:1px solid var(--line);margin-right:22px;min-width:0}
+.steps li:last-child{border-right:0;margin-right:0}
+.steps span{color:var(--copper);font-size:11px;letter-spacing:.16em}
+.steps h3{margin:28px 0 10px}
+.steps p{color:var(--muted);font-size:13px;margin:0}
+@media (max-width:900px){.steps{grid-template-columns:1fr 1fr}.steps li:nth-child(2){border-right:0;margin-right:0}.steps li:nth-child(n+3){border-top:1px solid var(--line);margin-top:24px}}
+@media (max-width:520px){.steps{grid-template-columns:1fr}.steps li{border-right:0;margin-right:0;border-bottom:1px solid var(--line);padding-bottom:22px}.steps li:nth-child(n+2){margin-top:0;border-top:0}}
+
+/* мастера */
+.team{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.member{border-top:1px solid var(--line);padding-top:20px;min-width:0}
+.mono{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--copper-soft);font-family:var(--serif);font-size:24px;color:var(--copper);margin-bottom:22px}
+.member p{color:var(--muted);font-size:13px;margin:8px 0 0}
+.member .role{color:var(--copper);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:6px}
+@media (max-width:900px){.team{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.team{grid-template-columns:1fr}}
+
+/* запись */
+.book-wrap{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(32px,6vw,90px);align-items:start}
+.book-pic{margin-top:36px;aspect-ratio:1;max-width:340px;overflow:hidden;opacity:.9}
+.form{display:grid;gap:18px;border-top:1px solid rgba(243,236,229,.18);padding-top:28px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.form label{display:grid;gap:8px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#c2b5aa}
+.form input,.form select,.form textarea{font:inherit;font-size:15px;letter-spacing:0;text-transform:none;color:#f3ece5;background:transparent;border:0;border-bottom:1px solid rgba(243,236,229,.35);padding:10px 0;border-radius:0;color-scheme:dark;width:100%;min-width:0}
+.form select option{color:#282522;background:#f5f0e9}
+.form input:focus,.form select:focus,.form textarea:focus{outline:none;border-bottom-color:var(--copper-soft)}
+.form textarea{resize:vertical}
+.btn.light{border-color:rgba(243,236,229,.6);color:#f3ece5;justify-self:start}
+.btn.light:hover{background:#f3ece5;color:#2e2824}
+.err{margin:0;color:#e7a689;font-size:13px}
+.done{border:1px solid rgba(199,147,118,.5);padding:18px 20px}
+.done strong{font-family:var(--serif);font-weight:400;font-size:22px}
+.done p{margin:8px 0;color:#f3ece5}
+.done small{color:#c2b5aa;font-size:12px}
+@media (max-width:820px){.book-wrap{grid-template-columns:1fr}.book-pic{display:none}}
+@media (max-width:520px){.f2{grid-template-columns:1fr}}
+
+/* вопросы */
+.faq-wrap{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(32px,6vw,90px)}
+.faq{border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{cursor:pointer;list-style:none;padding:20px 40px 20px 0;position:relative;font-family:var(--serif);font-size:20px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";position:absolute;right:4px;top:18px;color:var(--copper);font-family:var(--sans);font-size:22px;transition:transform .3s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{margin:0 0 20px;color:var(--muted);max-width:60ch}
+@media (max-width:820px){.faq-wrap{grid-template-columns:1fr}}
+
+/* контакты */
+.contacts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:clamp(32px,6vw,90px);align-items:center}
+.cdl{margin:32px 0 0;border-top:1px solid var(--line)}
+.cdl div{display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.cdl dt{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);padding-top:4px}
+.cdl dd{margin:0;font-family:var(--serif);font-size:20px;user-select:text}
+.copy{font:inherit;font-family:var(--sans);font-size:11px;margin-left:10px;padding:4px 10px;border:1px solid var(--line);background:transparent;cursor:pointer;color:var(--muted)}
+.contacts-pic{aspect-ratio:4/5;overflow:hidden;max-width:100%}
+@media (max-width:820px){.about,.contacts{grid-template-columns:1fr}.cdl div{grid-template-columns:1fr;gap:4px}}
+
+.foot{position:relative;z-index:10;background:#2e2824;color:#c2b5aa;border-top:1px solid rgba(243,236,229,.1)}
+.foot .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:24px 40px;padding-block:36px}
+.foot .wordmark{color:#f3ece5}
+.foot nav{display:flex;gap:22px;flex-wrap:wrap;font-size:12px}
+.foot nav a:hover{color:#f3ece5}
+.foot small{flex-basis:100%;font-size:11px}
+@media (prefers-reduced-motion:reduce){.rv{transition:none}.rv.pre{transform:none;opacity:1}.tile img{transition:none}}
+
+/* ================= анимации сайта (обложка не затронута) ================= */
+.progress{position:fixed;left:0;top:env(safe-area-inset-top,0px);height:2px;width:100%;background:var(--copper);transform-origin:0 50%;transform:scaleX(0);z-index:45;pointer-events:none;opacity:0;transition:opacity .3s}
+.past .progress{opacity:1}
+/* заголовки по буквам */
+.sec h2 .w2{display:inline-block;white-space:nowrap}
+.sec h2 .c2{display:inline-block;transition:transform 1s cubic-bezier(.2,.75,.1,1),opacity 1s,filter 1s;transition-delay:calc(var(--i)*22ms)}
+.sec h2.pre .c2{transform:translateY(.7em) rotate(4deg);opacity:0;filter:blur(5px)}
+.sec h2.pre{transform:none;opacity:1}
+/* фото: шторка снизу вверх и приближение */
+.rv[data-a="clip"]{transition:clip-path 1.3s cubic-bezier(.7,0,.2,1)}
+.rv[data-a="clip"].pre{clip-path:inset(100% 0 0 0);transform:none;opacity:1}
+.rv[data-a="clip"]{clip-path:inset(0 0 0 0)}
+.rv[data-a="clip"] img{transition:transform 1.6s cubic-bezier(.2,.75,.1,1)}
+.rv[data-a="clip"].pre img{transform:scale(1.25)}
+.par{will-change:transform}
+figure.parwrap{overflow:hidden}
+figure.parwrap img{height:118%;margin-top:-9%}
+/* ступенчатое появление */
+.rv{transition-delay:var(--d,0ms)}
+.rv[data-a="left"].pre{transform:translateX(-50px);opacity:0}
+.rv[data-a="right"].pre{transform:translateX(50px);opacity:0}
+.points li{transition:transform .9s cubic-bezier(.2,.75,.1,1),opacity .9s;transition-delay:calc(var(--k)*120ms + 300ms)}
+.about-txt.pre .points li{transform:translateX(30px);opacity:0}
+
+/* бегущая строка */
+.marquee{position:relative;z-index:10;background:var(--paper);overflow:hidden;border-block:1px solid var(--line);padding-block:26px}
+.mq-track{display:flex;width:max-content;will-change:transform}
+.mq-track span{font-family:var(--serif);font-style:italic;font-size:clamp(34px,5vw,72px);white-space:nowrap;padding-right:42px;color:var(--ink);line-height:1.1}
+.mq-track span i{font-style:normal;color:var(--copper);margin-left:42px;font-size:.5em;vertical-align:middle}
+.mq-track.b span{color:transparent;-webkit-text-stroke:1px var(--copper-soft)}
+
+/* горизонтальные слайды */
+.hs{position:relative;z-index:10;background:#efe7dd}
+.hs-pin{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:28px;padding-block:90px 40px}
+.hs-pin > .wrap{width:100%}
+.panel > div{min-width:0}
+.hs-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.hs-head h2{font-size:clamp(34px,4vw,56px)}
+.hs-count{font-family:var(--serif);font-size:22px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.hs-count b{color:var(--copper);font-weight:400}
+.hs-bar{height:1px;background:var(--line);position:relative;margin-top:6px}
+.hs-bar i{position:absolute;inset:0;background:var(--copper);transform-origin:0 50%;transform:scaleX(0)}
+.hs-track{display:flex;gap:clamp(20px,3vw,44px);will-change:transform;padding-left:max(20px,env(safe-area-inset-left,0px))}
+@media (min-width:900px){.hs-track{padding-left:max(calc((100vw - 1240px)/2 + 48px),48px)}}
+.panel{flex:0 0 auto;width:min(72vw,860px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(20px,3vw,40px);align-items:end}
+.panel figure{aspect-ratio:4/5;overflow:hidden;max-height:62vh;max-width:100%}
+.panel figure img{width:120%;max-width:none;margin-left:-10%;height:100%;object-fit:cover;will-change:transform}
+.panel .pn{font-family:var(--serif);font-size:clamp(60px,8vw,120px);line-height:.8;color:transparent;-webkit-text-stroke:1px var(--copper-soft)}
+.panel h3{font-family:var(--serif);font-weight:400;font-size:clamp(28px,2.6vw,40px);overflow-wrap:anywhere;margin:14px 0 10px;letter-spacing:-.03em;line-height:1.05}
+.panel p{color:var(--muted);font-size:13px;margin:0 0 20px;max-width:34ch}
+.panel .btn{margin-top:0}
+.hs-end{flex:0 0 auto;width:20vw}
+@media (max-width:820px){
+  .panel{width:84vw;grid-template-columns:1fr;gap:16px}
+  .panel figure{aspect-ratio:4/3;max-height:40vh}
+  .panel .pn{font-size:56px}
+  .hs-pin{padding-block:80px 24px;gap:18px}
+}
+
+/* прайс: строки по очереди и превью фото у курсора */
+.row{transition:transform .7s cubic-bezier(.2,.75,.1,1),opacity .7s,background .3s,padding .3s;transition-delay:calc(var(--k)*60ms)}
+.price.swap .row{transform:translateY(18px);opacity:0;transition:none}
+.row{position:relative;cursor:pointer}
+.row::before{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:100%;background:var(--copper);transform:scaleX(0);transform-origin:0 50%;transition:transform .5s cubic-bezier(.2,.75,.1,1)}
+.row:hover::before{transform:scaleX(1)}
+.row:hover{padding-left:12px}
+.peek{position:fixed;left:0;top:0;width:200px;height:250px;z-index:30;pointer-events:none;overflow:hidden;opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(-6deg);transition:opacity .3s,transform .4s cubic-bezier(.2,.75,.1,1)}
+.peek.on{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}
+.peek img{width:100%;height:100%;object-fit:cover}
+@media (hover:none){.peek{display:none}}
+
+/* галерея: лесенка и наклон */
+.tile{transition:transform .9s cubic-bezier(.2,.75,.1,1),opacity .9s;transition-delay:var(--d,0ms)}
+.tile.pre{transform:translateY(50px) scale(.96);opacity:0}
+
+/* шаги: линия прорисовывается */
+.steps{position:relative;border-top:0}
+.steps::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:var(--line)}
+.steps::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:var(--copper);transform-origin:0 50%;transform:scaleX(var(--sp,0));transition:transform .2s linear}
+.steps span{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;border:1px solid var(--copper-soft);background:#efe7dd;margin-top:-20px;position:relative;transition:background .4s,color .4s}
+.steps li.lit span{background:var(--copper);color:#fffaf5;border-color:var(--copper)}
+.steps li{padding-top:0}
+@media (max-width:900px){.steps::before,.steps::after{display:none}.steps span{margin-top:24px}}
+
+/* мастера: кольцо вокруг монограммы */
+.mono{position:relative;transition:color .3s,background .3s}
+.mono::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:1px dashed var(--copper-soft);opacity:0;transition:opacity .3s}
+.member:hover .mono{background:var(--copper);color:#fffaf5}
+.member:hover .mono::after{opacity:1;animation:spin 6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.member{transition:transform .4s cubic-bezier(.2,.75,.1,1)}
+.member:hover{transform:translateY(-6px)}
+
+/* запись: плавающее свечение */
+.sec.dark{overflow:hidden}
+.sec.dark::before{content:"";position:absolute;width:60vmax;height:60vmax;left:-10vmax;top:-20vmax;border-radius:50%;background:radial-gradient(circle,rgba(199,147,118,.22),transparent 65%);animation:drift 18s ease-in-out infinite alternate;pointer-events:none}
+.sec.dark::after{content:"";position:absolute;width:50vmax;height:50vmax;right:-15vmax;bottom:-25vmax;border-radius:50%;background:radial-gradient(circle,rgba(156,96,72,.25),transparent 65%);animation:drift 22s ease-in-out infinite alternate-reverse;pointer-events:none}
+.sec.dark .wrap{position:relative;z-index:1}
+@keyframes drift{to{transform:translate(18vmax,14vmax) scale(1.2)}}
+.done{animation:pop .6s cubic-bezier(.2,.75,.1,1)}
+@keyframes pop{from{opacity:0;transform:translateY(12px)}}
+
+/* вопросы: ответ выезжает */
+.faq details[open] p{animation:fold .5s cubic-bezier(.2,.75,.1,1)}
+@keyframes fold{from{opacity:0;transform:translateY(-8px)}}
+.faq summary{transition:color .25s,padding .3s}
+.faq summary:hover{color:var(--copper);padding-left:8px}
+
+@media (prefers-reduced-motion:reduce){
+  .sec h2.pre .c2,.rv[data-a].pre,.tile.pre,.about-txt.pre .points li{transform:none!important;opacity:1!important;filter:none!important;clip-path:none!important}
+  .rv[data-a="clip"].pre img{transform:none}
+  .sec.dark::before,.sec.dark::after,.member:hover .mono::after{animation:none}
+}
+</style>
+
+</head>
+<body>
+<div class="stage" aria-hidden="true">
+  <div class="wash" id="wash"></div>
+  <div class="pano" id="pano"></div>
+  <div class="pano-shade" id="shadeL"></div>
+  <div class="pano-shade flip" id="shadeR"></div>
+  <div class="cols" id="cols"></div>
+  <div class="model" id="model">
+    <div class="views" id="views">
+      <img data-turn="0"   src="assets/model-front.webp" alt="">
+      <img data-turn="40"  src="assets/model-angle.webp" alt="">
+      <img data-turn="75"  src="assets/model-side.webp" alt="">
+      <img data-turn="135" src="assets/model-back-angle.webp" alt="">
+      <img data-turn="180" src="assets/model-back.webp" alt="">
+      <img data-turn="225" class="mirror" src="assets/model-back-angle.webp" alt="">
+      <img data-turn="285" class="mirror" src="assets/model-side.webp" alt="">
+      <img data-turn="320" class="mirror" src="assets/model-angle.webp" alt="">
+      <img data-turn="360" src="assets/model-front.webp" alt="">
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="bar">
+    <a class="wordmark" href="#s0" aria-label="MUSE, zum Anfang">MUSE<span>HAIR STUDIO</span></a>
+    <nav aria-label="Hauptnavigation">
+      <a href="#about">Studio</a>
+      <a href="#services">Leistungen</a>
+      <a href="#gallery">Galerie</a>
+      <a href="#team">Team</a>
+      <a href="#contacts">Kontakt</a>
+    </nav>
+    <a class="book" href="#booking">Termin buchen <span>↗</span></a>
+  </div>
+</header>
+
+<ul class="pager" id="pager" aria-label="Abschnitte"></ul>
+<div class="turn" aria-hidden="true"><div class="turn-ring" id="turnRing"><span id="turnVal">000°</span></div><span class="turn-label">RUNDUM-<br>BLICK</span></div>
+
+<main>
+  <section class="slide in" id="s0" aria-label="MUSE Hair Studio">
+    <div class="txt left">
+      <p class="eyebrow fx"><b></b>Hair · Color · Care</p>
+      <h1 class="split">Schönheit<br>aus neuer<br><em>Perspektive.</em></h1>
+      <p class="lead fx" style="--d:450ms">Ein Look, in dem du ganz du selbst bist. Schnitt, Farbe und Styling mit Liebe zum Detail.</p>
+      <a class="btn fx" style="--d:600ms" href="#services">Deinen Look finden <span>↗</span></a>
+    </div>
+    <span class="cue fx" style="--d:900ms"><i></i>Scrollen zum Drehen</span>
+  </section>
+
+  <section class="slide" id="s1" aria-label="Schnitt und Form">
+    <div class="txt left">
+      <p class="eyebrow fx"><b></b>01 · Schnitt und Form</p>
+      <h2 class="split">Eine Form,<br><em>die zu dir passt</em></h2>
+      <p class="lead fx" style="--d:450ms">Wir beginnen mit dem, was deine Persönlichkeit unterstreicht. Eine Silhouette, die mit der natürlichen Bewegung deiner Haare arbeitet.</p>
+      <p class="tag fx" style="--d:600ms">Persönliche Beratung</p>
+    </div>
+  </section>
+
+  <section class="slide" id="s2" aria-label="Styling und Volumen">
+    <div class="txt right">
+      <p class="eyebrow fx"><b></b>02 · Styling und Pflege</p>
+      <h2 class="split">Volumen aus jedem<br><em>Blickwinkel</em></h2>
+      <p class="lead fx" style="--d:450ms">Professionelles Styling erhält die natürliche Bewegung der Haare. Volumen, Glanz und Schutz, ohne zu beschweren.</p>
+      <p class="tag fx" style="--d:600ms">Persönliche Beratung</p>
+    </div>
+  </section>
+
+  <section class="slide" id="s3" aria-label="Farbe und Glanz">
+    <div class="txt left">
+      <p class="eyebrow fx"><b></b>03 · Farbe und Glanz</p>
+      <h2 class="split">Glanz und weiche<br><em>Textur</em></h2>
+      <p class="lead fx" style="--d:450ms">Sanfte Nuancen und saubere Übergänge. Pflege und Technik wählen wir passend zur Struktur deiner Haare.</p>
+      <p class="tag fx" style="--d:600ms">Persönliche Beratung</p>
+    </div>
+  </section>
+
+  <section class="slide" id="s4" aria-label="Termin">
+    <div class="txt left">
+      <p class="eyebrow fx"><b></b>MUSE · Hair Studio</p>
+      <h2 class="split">Zeit<br>für <em>dich.</em></h2>
+      <p class="lead fx" style="--d:450ms">Dein neuer Look beginnt mit einer persönlichen Beratung. Schnitt, Farbe und Styling, individuell auf dich abgestimmt.</p>
+      <a class="btn fx" style="--d:600ms" href="#booking">Online-Termin buchen <span>↗</span></a>
+    </div>
+  </section>
+
+  <!-- ================= О СТУДИИ ================= -->
+  <section class="sec" id="about" aria-labelledby="about-h">
+    <div class="wrap about">
+      <figure class="about-pic rv"><img src="assets/g/hall.webp" alt="Der Hauptsalon von MUSE: bodentiefe Fenster, Bogenspiegel und ein Ringleuchter" loading="lazy" width="1600" height="800"></figure>
+      <div class="about-txt rv" data-a="right">
+        <p class="eyebrow"><b></b>Das Studio</p>
+        <h2 id="about-h">Ein heller Salon,<br>in dem dich <em>niemand hetzt.</em></h2>
+        <p class="lead">MUSE ist ein Hair Studio mit bodentiefen Fenstern und Stylistinnen, die erst zuhören und dann zur Schere greifen. Wir arbeiten mit deiner natürlichen Textur und wählen Form und Farbe so, dass du den Look zu Hause leicht nachstylen kannst.</p>
+        <ul class="points">
+          <li><b>Tageslicht</b><span>Wir wählen die Farbe am Fenster, damit der Ton draußen genauso wirkt wie im Salon.</span></li>
+          <li><b>Eine Kundin pro Stylistin</b><span>Niemand betreut zwei Kundinnen gleichzeitig.</span></li>
+          <li><b>Professionelle Pflege</b><span>Wir arbeiten mit Salonprodukten und stellen deine Pflege für zu Hause zusammen.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================= БЕГУЩАЯ СТРОКА ================= -->
+  <div class="marquee" aria-hidden="true">
+    <div class="mq-track" id="mq1"><span>Haarschnitte<i>✦</i></span><span>Coloration<i>✦</i></span><span>Styling<i>✦</i></span><span>Pflege<i>✦</i></span><span>Kastanien-Highlights<i>✦</i></span><span>Balayage<i>✦</i></span><span>Hollywood Waves<i>✦</i></span></div>
+    <div class="mq-track b" id="mq2"><span>Hair<i>✦</i></span><span>Color<i>✦</i></span><span>Care<i>✦</i></span><span>Style<i>✦</i></span><span>Hair<i>✦</i></span><span>Color<i>✦</i></span><span>Care<i>✦</i></span><span>Style<i>✦</i></span></div>
+  </div>
+
+  <!-- ================= НАПРАВЛЕНИЯ: горизонтальные слайды ================= -->
+  <section class="hs" id="directions" aria-labelledby="dir-h">
+    <div class="hs-pin">
+      <div class="wrap">
+        <div class="hs-head">
+          <div><p class="eyebrow"><b></b>Bereiche</p><h2 id="dir-h">Vier Welten von <em>MUSE</em></h2></div>
+          <span class="hs-count" id="hsCount"><b>01</b> / 04</span>
+        </div>
+        <div class="hs-bar"><i id="hsBar"></i></div>
+      </div>
+      <div class="hs-track" id="hsTrack">
+        <article class="panel"><figure><img src="assets/g/model-side.webp" alt="Stufenschnitt im Profil" loading="lazy"></figure><div><span class="pn">01</span><h3>Haarschnitte</h3><p>Eine Form, die mit der natürlichen Bewegung der Haare arbeitet und sich zu Hause leicht stylen lässt.</p><a class="btn" href="#services" data-cat="0">Preise Haarschnitte <span>↗</span></a></div></article>
+        <article class="panel"><figure><img src="assets/g/model-front.webp" alt="Kastanien-Highlights, Vorderansicht" loading="lazy"></figure><div><span class="pn">02</span><h3>Coloration</h3><p>Sanfte Nuancen und saubere Übergänge: vom Glossing bis zu Balayage und Airtouch.</p><a class="btn" href="#services" data-cat="1">Preise Coloration <span>↗</span></a></div></article>
+        <article class="panel"><figure><img src="assets/g/model-back.webp" alt="Volumen-Styling, Rückansicht" loading="lazy"></figure><div><span class="pn">03</span><h3>Styling</h3><p>Ansatzvolumen, Hollywood Waves und Looks für besondere Abende.</p><a class="btn" href="#services" data-cat="2">Preise Styling <span>↗</span></a></div></article>
+        <article class="panel"><figure><img src="assets/g/girl-portrait.webp" alt="Glänzendes, gepflegtes Haar nach der Behandlung" loading="lazy"></figure><div><span class="pn">04</span><h3>Pflege</h3><p>Aufbau, Haar-Botox und Keratin. Dazu die passende Pflege für zu Hause.</p><a class="btn" href="#services" data-cat="3">Preise Pflege <span>↗</span></a></div></article>
+        <div class="hs-end" aria-hidden="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= УСЛУГИ И ЦЕНЫ ================= -->
+  <section class="sec alt" id="services" aria-labelledby="services-h">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div><p class="eyebrow"><b></b>Leistungen und Preise</p><h2 id="services-h">Was wir <em>machen</em></h2></div>
+        <p class="lead">Der Preis hängt von Länge und Dichte deiner Haare ab. Den genauen Preis nennen wir dir in der Beratung, bevor wir anfangen.</p>
+      </div>
+      <div class="tabs rv" role="tablist" aria-label="Kategorien" id="tabs"></div>
+      <div class="price rv" id="price" role="tabpanel"></div>
+    </div>
+  </section>
+
+  <!-- ================= ГАЛЕРЕЯ ================= -->
+  <section class="sec" id="gallery" aria-labelledby="gallery-h">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div><p class="eyebrow"><b></b>Galerie</p><h2 id="gallery-h">Arbeiten und <em>Räume</em></h2></div>
+        <div class="filters" role="group" aria-label="Galerie filtern" id="filters">
+          <button type="button" data-f="all" aria-pressed="true">Alle</button>
+          <button type="button" data-f="work" aria-pressed="false">Arbeiten</button>
+          <button type="button" data-f="space" aria-pressed="false">Salon</button>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <!-- ================= КАК ПРОХОДИТ ВИЗИТ ================= -->
+  <section class="sec alt" id="visit" aria-labelledby="visit-h">
+    <div class="wrap">
+      <div class="sec-head rv"><div><p class="eyebrow"><b></b>Dein Besuch</p><h2 id="visit-h">Vier Schritte <em>zum Look</em></h2></div></div>
+      <ol class="steps">
+        <li class="rv"><span>01</span><h3>Beratung</h3><p>15 Minuten Gespräch: Was dir gefällt, was dich stört und wie viel Zeit du morgens fürs Styling hast.</p></li>
+        <li class="rv"><span>02</span><h3>Haaranalyse</h3><p>Wir prüfen Struktur, Porosität und frühere Colorationen. Davon hängen Technik und Preis ab.</p></li>
+        <li class="rv"><span>03</span><h3>Die Behandlung</h3><p>Schnitt, Farbe oder Styling. Das Ergebnis zeigen wir dir bei Tageslicht am Fenster.</p></li>
+        <li class="rv"><span>04</span><h3>Pflege zu Hause</h3><p>Wir zeigen dir, wie du selbst stylst, und stellen die passenden Produkte zusammen.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= МАСТЕРА ================= -->
+  <section class="sec" id="team" aria-labelledby="team-h">
+    <div class="wrap">
+      <div class="sec-head rv"><div><p class="eyebrow"><b></b>Team</p><h2 id="team-h">Menschen, denen man <em>vertraut</em></h2></div></div>
+      <div class="team" id="team-list"></div>
+    </div>
+  </section>
+
+  <!-- ================= ЗАПИСЬ ================= -->
+  <section class="sec dark" id="booking" aria-labelledby="booking-h">
+    <div class="wrap book-wrap">
+      <div class="rv">
+        <p class="eyebrow"><b></b>Online-Termin</p>
+        <h2 id="booking-h">Wähle<br><em>deine Zeit</em></h2>
+        <p class="lead">Wähle eine Leistung und eine passende Uhrzeit. Wir bestätigen deinen Termin und erinnern dich einen Tag vorher.</p>
+        <figure class="book-pic"><img src="assets/g/mirrors.webp" alt="Bogenspiegel an den Fenstern im Salon von MUSE" loading="lazy" width="594" height="600"></figure>
+      </div>
+      <form class="form rv" id="form" novalidate>
+        <div class="f2">
+          <label for="f-service">Leistung<select id="f-service" required></select></label>
+          <label for="f-master">Stylistin<select id="f-master"></select></label>
+        </div>
+        <div class="f2">
+          <label for="f-date">Datum<input id="f-date" type="date" required></label>
+          <label for="f-time">Uhrzeit<select id="f-time" required></select></label>
+        </div>
+        <div class="f2">
+          <label for="f-name">Name<input id="f-name" type="text" autocomplete="name" placeholder="Wie dürfen wir dich nennen?" required></label>
+          <label for="f-phone">Telefon<input id="f-phone" type="tel" autocomplete="tel" placeholder="+49 30 000 000 00" required></label>
+        </div>
+        <label for="f-note">Wünsche<textarea id="f-note" rows="3" placeholder="Zum Beispiel: Farbe auffrischen, aber die Länge behalten"></textarea></label>
+        <p class="err" id="f-err" role="alert" hidden></p>
+        <button class="btn light" type="submit">Anfrage senden <span>↗</span></button>
+        <div class="done" id="f-done" hidden>
+          <strong>Anfrage vorbereitet</strong>
+          <p id="f-sum"></p>
+          <small>Dies ist eine Demoversion der Website: Die Anfrage wird nicht verschickt. Auf der echten Website wird das Formular mit dem Buchungssystem des Salons verbunden.</small>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ================= ВОПРОСЫ ================= -->
+  <section class="sec" id="faq" aria-labelledby="faq-h">
+    <div class="wrap faq-wrap">
+      <div class="rv"><p class="eyebrow"><b></b>FAQ</p><h2 id="faq-h">Häufige <em>Fragen</em></h2></div>
+      <div class="faq rv">
+        <details><summary>Was kostet die Beratung?</summary><p>Die Beratung vor einer Behandlung ist kostenlos und Teil deines Termins. Eine Beratung ohne Behandlung dauert 30 Minuten.</p></details>
+        <details><summary>Darf ich ein Foto meines Wunsch-Looks mitbringen?</summary><p>Ja, das hilft sogar. Wir sagen dir ehrlich, was mit deinen Haaren in einem Termin möglich ist und was mehrere braucht.</p></details>
+        <details><summary>Wie bereite ich mich auf eine Coloration vor?</summary><p>Wasch deine Haare am Tag vorher nicht und erzähl uns von allen Colorationen im letzten Jahr, auch von denen zu Hause.</p></details>
+        <details><summary>Was, wenn mir das Ergebnis nicht gefällt?</summary><p>Melde dich innerhalb einer Woche. Wir korrigieren Form oder Farbton kostenlos.</p></details>
+        <details><summary>Wie kann ich einen Termin absagen oder verschieben?</summary><p>Ruf an oder schreib uns spätestens 12 Stunden vor dem Termin.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= КОНТАКТЫ ================= -->
+  <section class="sec alt" id="contacts" aria-labelledby="contacts-h">
+    <div class="wrap contacts">
+      <div class="rv">
+        <p class="eyebrow"><b></b>Kontakt</p>
+        <h2 id="contacts-h">Wir freuen uns <em>auf dich</em></h2>
+        <dl class="cdl">
+          <div><dt>Adresse</dt><dd>Musterstraße 12, 10115 Berlin</dd></div>
+          <div><dt>Öffnungszeiten</dt><dd>Täglich 10:00–21:00</dd></div>
+          <div><dt>Telefon</dt><dd><span id="phone">+49 30 000 000 00</span> <button type="button" class="copy" id="copy">Kopieren</button></dd></div>
+          <div><dt>Instagram</dt><dd>@muse.hairstudio</dd></div>
+        </dl>
+        <a class="btn" href="#booking">Online-Termin buchen <span>↗</span></a>
+      </div>
+      <figure class="contacts-pic rv"><img src="assets/g/reception.webp" alt="Empfang von MUSE am Fenster mit blühenden Zweigen" loading="lazy" width="700" height="847"></figure>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap">
+      <a class="wordmark" href="#s0">MUSE<span>HAIR STUDIO</span></a>
+      <nav aria-label="Fußzeilenmenü"><a href="#services">Leistungen</a><a href="#gallery">Galerie</a><a href="#team">Team</a><a href="#booking">Termin</a><a href="#contacts">Kontakt</a></nav>
+      <small>© MUSE Hair Studio · 2026. Demo-Website: Preise, Team, Adresse und Telefonnummer sind Beispiele.</small>
+    </div>
+  </footer>
+</main>
+
+<script>
+(() => {
+'use strict';
+document.documentElement.lang = 'de';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const slides = [...document.querySelectorAll('.slide')];
+const N = slides.length;
+
+/* ---------- побуквенная разбивка заголовков ---------- */
+document.querySelectorAll('.split').forEach(el => {
+  let i = 0;
+  el.setAttribute('aria-label', el.textContent.replace(/\s+/g,' ').trim());
+  const walk = node => [...node.childNodes].forEach(ch => {
+    if (ch.nodeType === 1){ walk(ch); return; }
+    if (ch.nodeType !== 3) return;
+    const frag = document.createDocumentFragment();
+    ch.textContent.split(/(\s+)/).forEach(part => {
+      if (!part) return;
+      if (/^\s+$/.test(part)){ frag.appendChild(document.createTextNode(' ')); return; }
+      const w = document.createElement('span'); w.className = 'w'; w.setAttribute('aria-hidden','true');
+      [...part].forEach(chr => { const c = document.createElement('span'); c.className = 'c'; c.style.setProperty('--i', i++); c.textContent = chr; w.appendChild(c); });
+      frag.appendChild(w);
+    });
+    ch.replaceWith(frag);
+  });
+  walk(el);
+});
+
+/* ---------- пагинация ---------- */
+const pager = document.getElementById('pager');
+const names = ['Start','Schnitt','Styling','Farbe','Termin'];
+pager.innerHTML = names.map((n,k) => `<li><button type="button" data-k="${k}" aria-label="${n}"><i></i><span>${String(k+1).padStart(2,'0')}</span></button></li>`).join('');
+const pbtn = [...pager.querySelectorAll('button')];
+pbtn.forEach(b => b.addEventListener('click', () => slides[+b.dataset.k].scrollIntoView({behavior: reduce ? 'auto' : 'smooth'})));
+const navLinks = [...document.querySelectorAll('header nav a')];
+const navFor = [0,1,1,1,2];
+
+/* ---------- ключевые кадры камеры ----------
+   turn — угол обхода вокруг модели (градусы), mx — центр модели по горизонтали (доля ширины),
+   s — приближение, ring — размер кольца (доля высоты) */
+const K = [
+  {turn:0,   mx:.66, s:1.00, ring:.62},
+  {turn:75,  mx:.70, s:.98, ring:.64},
+  {turn:180, mx:.34, s:1.04, ring:.58},
+  {turn:285, mx:.68, s:.98, ring:.66},
+  {turn:360, mx:.64, s:.96,  ring:.66}
+];
+const sstep = t => t*t*(3-2*t);
+const lerp = (a,b,t) => a + (b-a)*t;
+
+let P = 0;
+function readScroll(){
+  const h = slides[1].offsetTop - slides[0].offsetTop || innerHeight;
+  P = Math.min(N-1, Math.max(0, scrollY/h || 0));
+}
+let active = -1;
+function updateActive(){
+  const a = Math.round(P);
+  if (a === active) return;
+  active = a;
+  slides.forEach((s,k) => s.classList.toggle('in', k === a));
+  pbtn.forEach((b,k) => b.setAttribute('aria-current', k === a));
+}
+addEventListener('scroll', () => { readScroll(); updateActive(); }, {passive:true});
+addEventListener('resize', readScroll);
+readScroll(); updateActive();
+
+/* ---------- ракурсы: только настоящие фото, без дорисовки ----------
+   Каждое фото доворачивается в 3D навстречу соседнему ракурсу. В середине пути новое фото
+   встаёт снизу целиком, а старое за 0,15 с растворяется поверх — без размытия и без просвета фона. */
+const imgs = [...document.querySelectorAll('#views img')];
+const stops = imgs.map(im => ({a:+im.dataset.turn, im, mirror: im.classList.contains('mirror')}));
+let curStop = null;
+// модель не вращается: снимок стоит ровно, меняется только ракурс камеры
+function setTilt(st){ st.im.style.transform = st.mirror ? 'scaleX(-1)' : ''; }
+function showAngle(angle){
+  angle = Math.max(0, Math.min(360, angle));
+  let n = stops.findIndex(s => s.a >= angle); if (n <= 0) n = 1;
+  const p = stops[n-1], q = stops[n];
+  const t = Math.min(1, Math.max(0, (angle - p.a)/(q.a - p.a)));
+  let next = t < .5 ? p : q;
+  // одинаковые снимки на 0° и 360° считаем одним кадром
+  if (curStop && next !== curStop && next.im.src === curStop.im.src && next.mirror === curStop.mirror){ setTilt(curStop, angle - (next.a - curStop.a)); return; }
+  if (next !== curStop){
+    const old = curStop;
+    next.im.classList.remove('out','go'); next.im.classList.add('cur');
+    if (old){
+      old.im.classList.remove('cur'); old.im.classList.add('out');
+      if (reduce){ old.im.classList.remove('out'); }
+      else {
+        requestAnimationFrame(() => old.im.classList.add('go'));
+        clearTimeout(old.tm); old.tm = setTimeout(() => old.im.classList.remove('out','go'), 180);
+      }
+    }
+    curStop = next;
+  }
+  setTilt(curStop, angle);
+}
+
+const model = document.getElementById('model'), views = document.getElementById('views');
+const wash = document.getElementById('wash');
+const turnRing = document.getElementById('turnRing'), turnVal = document.getElementById('turnVal');
+
+/* ---------- студия вокруг модели: арочные зеркала по кругу и кольцо-орбита ---------- */
+const cols = document.getElementById('cols');
+
+const PANO_RATIO = 4000/1000;
+const ARCHES = [];   // вместо нарисованных арок — фото-панорама салона
+const pano = document.getElementById('pano'), shadeL = document.getElementById('shadeL'), shadeR = document.getElementById('shadeR');
+let mxp = 0, smx = 0;
+addEventListener('pointermove', e => { mxp = e.clientX/innerWidth - .5; });
+
+let sp = P, spv = 0, last = performance.now();
+function loop(now){
+  const dt = Math.max(0, Math.min(.05, (now - last)/1000)); last = now;
+  // упругое следование за прокруткой: быстро догоняет, мягко тормозит, без перелёта
+  if (reduce){ sp = P; spv = 0; }
+  else {
+    const k = 120, c = 2*Math.sqrt(k);              // критическое затухание
+    for (let st = 0; st < 4; st++){ const h = dt/4; spv += ((P - sp)*k - spv*c)*h; sp += spv*h; }
+  }
+  smx += (mxp - smx)*Math.min(1, dt*3);
+  const p = Math.min(N-1, Math.max(0, sp));
+  const i = Math.min(N-2, Math.floor(p)), f = sstep(Math.min(1, p - i));
+  const A = K[i], B = K[i+1];
+  // угол идёт линейно со скроллом, остальное — плавно
+  const turn = lerp(A.turn, B.turn, Math.min(1, p - i)) + (reduce ? 0 : smx*10);
+  const W = innerWidth, H = innerHeight, mobile = W < 820;
+  let mx = lerp(A.mx, B.mx, f), s = lerp(A.s, B.s, f), rs = lerp(A.ring, B.ring, f);
+  // между слайдами камера слегка отъезжает
+  const arc = Math.sin(Math.PI*f);
+  s *= 1 - arc*.06;
+
+  showAngle(turn);
+
+
+  // размер и место модели
+  let mw, cx, bottom;
+  if (mobile){ mw = Math.min(W*1.05, H*.62); cx = W*(.5 + (mx - .5)*.35); bottom = H; }
+  else { mw = Math.min(W*.62, H*1.02); cx = W*mx; bottom = H*1.04; }
+  mw *= s;
+  const mh = mw*1199/1312;
+  model.style.width = mw + 'px';
+  model.style.transform = `translate(${cx - mw/2}px,${bottom - mh}px)`;
+
+  const ry = bottom - mh*.70;
+  wash.style.setProperty('--gx', (cx/W*100).toFixed(1) + '%');
+
+  // обстановка, которую облетает камера
+  cols.style.backgroundPosition = `${(-turn/360*W*1.6).toFixed(1)}px 0`;
+  // панорама замкнута на 360°: при полном облёте камеры проходит ровно один раз
+  // светлая дымка там, где стоит текст: модель справа — дымка слева, и наоборот
+  const sideK = Math.min(1, Math.max(0, (mx - .38)/.24));
+  shadeL.style.opacity = mobile ? 1 : sideK; shadeR.style.opacity = mobile ? 0 : 1 - sideK;
+  pano.style.backgroundPosition = `${(-turn/360*H*PANO_RATIO + W*.5 - H*1.0).toFixed(1)}px 100%`;
+
+  const prog = p/(N-1);
+  turnRing.style.setProperty('--p', (prog*100).toFixed(2) + '%');
+  turnVal.textContent = String(Math.round(Math.max(0, turn)) % 360).padStart(3, '0') + '°';
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ================= сайт под обложкой ================= */
+const coverEnd = () => slides[N-1].offsetTop;
+const stageEl = document.querySelector('.stage'), headerEl = document.querySelector('header');
+function onPage(){
+  const over = scrollY - coverEnd();
+  stageEl.style.transform = over > 0 ? `translateY(${-over}px)` : '';
+  headerEl.classList.toggle('solid', over > -60);
+  document.body.classList.toggle('past', over > 40);
+}
+addEventListener('scroll', onPage, {passive:true}); addEventListener('resize', onPage); onPage();
+
+/* подсветка пункта меню по разделу */
+const spy = [...document.querySelectorAll('header nav a')].map(a => ({a, el: document.querySelector(a.getAttribute('href'))})).filter(x => x.el);
+function spyUpdate(){
+  let cur = spy[0];
+  for (const x of spy) if (x.el.getBoundingClientRect().top < innerHeight*.4) cur = x;
+  spy.forEach(x => x.a.classList.toggle('cur', x === cur));
+}
+addEventListener('scroll', spyUpdate, {passive:true}); spyUpdate();
+
+/* услуги */
+const SERVICES = {
+  'Haarschnitte': [
+    ['Damenhaarschnitt', 'Beratung, Waschen, Schnitt und leichtes Styling.', '60–90 Min.', 69],
+    ['Schnitt und Styling', 'Neue Form plus Styling, das wir dir zum Nachmachen zeigen.', '2 Std.', 89],
+    ['Spitzen schneiden', 'Länge und Form bleiben, Spliss kommt weg.', '45 Min.', 45],
+    ['Pony', 'Neuer Pony oder Korrektur des bestehenden.', '20 Min.', 18],
+    ['Herrenhaarschnitt', 'Schere und Maschine, Waschen, Styling.', '45 Min.', 42]
+  ],
+  'Coloration': [
+    ['Glossing', 'Farbton auffrischen und Glanz verleihen.', '90 Min.', 65],
+    ['Färben in einem Ton', 'Ansatz oder komplette Länge, mit Pflege danach.', '2–3 Std.', 95],
+    ['Kastanien-Highlights', 'Warme Strähnen und weiche Übergänge wie auf dem Titelbild.', '3–4 Std.', 159],
+    ['Balayage', 'Von Hand aufgetragener Farbverlauf vom Ansatz bis in die Spitzen.', '4–5 Std.', 189],
+    ['Airtouch', 'Die weichsten Übergänge, wächst ohne sichtbare Kante heraus.', '5–6 Std.', 249]
+  ],
+  'Styling': [
+    ['Föhnen', 'Ansatzvolumen und glatte oder weiche Spitzen.', '45 Min.', 39],
+    ['Hollywood Waves', 'Große, glänzende Wellen für den Abend.', '60 Min.', 59],
+    ['Hochsteckfrisur', 'Hoch- oder halb hochgesteckt.', '90 Min.', 89],
+    ['Braut-Styling', 'Probefrisur und Styling am Hochzeitstag.', '3 Std.', 249]
+  ],
+  'Pflege': [
+    ['Aufbaupflege', 'Nährt und schenkt Glanz für coloriertes Haar.', '45 Min.', 49],
+    ['Haar-Botox', 'Glätte und Fülle, ohne zu beschweren.', '2 Std.', 119],
+    ['Keratin-Glättung', 'Glattes Haar für bis zu drei Monate.', '3 Std.', 199],
+    ['Kopfhautanalyse', 'Untersuchung durch die Trichologin und Pflegeplan.', '30 Min.', 35]
+  ]
+};
+const rub = n => n.toLocaleString('de-DE') + ' €';
+const tabs = document.getElementById('tabs'), price = document.getElementById('price');
+const cats = Object.keys(SERVICES);
+tabs.innerHTML = cats.map((c,i) => `<button type="button" role="tab" id="tab-${i}" aria-controls="price" aria-selected="${i===0}">${c}</button>`).join('');
+let showCat = function(i){
+  [...tabs.children].forEach((b,k) => { b.setAttribute('aria-selected', k===i); b.tabIndex = k===i ? 0 : -1; });
+  price.setAttribute('aria-labelledby', 'tab-'+i);
+  price.innerHTML = SERVICES[cats[i]].map(([n,d,t,p]) => `<div class="row"><div><h3>${n}</h3><p>${d}</p></div><span class="dur">${t}</span><span class="cost"><small>ab</small>${rub(p)}</span></div>`).join('');
+};
+[...tabs.children].forEach((b,i) => {
+  b.addEventListener('click', () => showCat(i));
+  b.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){ const k = (i + (e.key === 'ArrowRight' ? 1 : -1) + cats.length) % cats.length; showCat(k); tabs.children[k].focus(); } });
+});
+showCat(0);
+
+/* галерея */
+const GAL = [
+  ['model-front','work','Kastanien-Highlights, Vorderansicht'],
+  ['hall','space','Hauptsalon'],
+  ['model-side','work','Volumen-Styling im Profil'],
+  ['chandelier','space','Licht im Salon'],
+  ['model-back','work','Stufenschnitt'],
+  ['girl-portrait','work','Look nach dem Styling'],
+  ['mirrors','space','Plätze an den Fenstern'],
+  ['model-back-angle','work','Weiche Wellen'],
+  ['chairs','space','Stylingstühle'],
+  ['wash','space','Waschbereich'],
+  ['model-angle','work','Warmes Schokobraun'],
+  ['shelf','space','Professionelle Pflege']
+];
+const grid = document.getElementById('grid');
+grid.innerHTML = GAL.map(([f,c,t],i) => `<button type="button" class="tile" data-c="${c}" data-i="${i}" aria-label="Foto öffnen: ${t}"><img src="assets/g/${f}.webp" alt="${t}" loading="lazy"><span>${t}</span></button>`).join('');
+const fbtn = [...document.querySelectorAll('#filters button')];
+fbtn.forEach(b => b.addEventListener('click', () => {
+  fbtn.forEach(x => x.setAttribute('aria-pressed', x === b));
+  grid.querySelectorAll('.tile').forEach(t => t.hidden = !(b.dataset.f === 'all' || t.dataset.c === b.dataset.f));
+}));
+let lb = null, lbi = 0;
+function visibleIdx(){ return [...grid.querySelectorAll('.tile:not([hidden])')].map(t => +t.dataset.i); }
+function openLb(i){
+  lbi = i;
+  if (!lb){
+    lb = document.createElement('div'); lb.className = 'lb'; lb.setAttribute('role','dialog'); lb.setAttribute('aria-modal','true'); lb.setAttribute('aria-label','Fotoansicht');
+    lb.innerHTML = '<img alt=""><p></p><button type="button" class="x" aria-label="Schließen">×</button><button type="button" class="pv" aria-label="Vorheriges Foto">‹</button><button type="button" class="nx" aria-label="Nächstes Foto">›</button>';
+    lb.querySelector('.x').onclick = closeLb;
+    lb.querySelector('.pv').onclick = () => step(-1);
+    lb.querySelector('.nx').onclick = () => step(1);
+    lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
+    document.body.appendChild(lb);
+  }
+  lb.hidden = false;
+  const [f,,t] = GAL[i];
+  lb.querySelector('img').src = `assets/g/${f}.webp`; lb.querySelector('img').alt = t; lb.querySelector('p').textContent = t;
+  lb.querySelector('.x').focus();
+}
+function step(d){ const v = visibleIdx(); const k = v.indexOf(lbi); openLb(v[(k + d + v.length) % v.length]); }
+function closeLb(){ if (lb){ lb.hidden = true; const t = grid.querySelector(`[data-i="${lbi}"]`); t && t.focus(); } }
+grid.addEventListener('click', e => { const t = e.target.closest('.tile'); if (t) openLb(+t.dataset.i); });
+addEventListener('keydown', e => { if (!lb || lb.hidden) return; if (e.key === 'Escape') closeLb(); if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
+
+/* мастера */
+const TEAM = [
+  ['Anna Becker','Art Director, Coloristin','Übernimmt anspruchsvolle Colorationen und schult das Team.'],
+  ['Marie Koch','Spezialistin für Schnitte','Stufenschnitte und Formen, die auch ohne Styling sitzen.'],
+  ['Eva Hoffmann','Stylistin','Abend- und Brautlooks, Hollywood Waves.'],
+  ['Lea Schulz','Trichologin','Kopfhautanalyse und Aufbauprogramme.']
+];
+document.getElementById('team-list').innerHTML = TEAM.map(([n,r,d]) => `<article class="member rv"><div class="mono" aria-hidden="true">${n.split(' ').map(w => w[0]).join('')}</div><h3>${n}</h3><p class="role">${r}</p><p>${d}</p></article>`).join('');
+
+/* запись */
+const fs = document.getElementById('f-service'), fm = document.getElementById('f-master'), ft = document.getElementById('f-time'), fd = document.getElementById('f-date');
+fs.innerHTML = '<option value="">Leistung wählen</option>' + cats.map(c => `<optgroup label="${c}">${SERVICES[c].map(([n,,,p]) => `<option value="${n}">${n} – ab ${rub(p)}</option>`).join('')}</optgroup>`).join('');
+fm.innerHTML = '<option value="Egal wer">Egal wer</option>' + TEAM.map(([n,r]) => `<option value="${n}">${n} – ${r}</option>`).join('');
+const times = []; for (let h = 10; h <= 20; h++){ times.push(`${h}:00`); if (h < 20) times.push(`${h}:30`); }
+ft.innerHTML = '<option value="">Uhrzeit</option>' + times.map(t => `<option>${t}</option>`).join('');
+const today = new Date(); const iso = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+fd.min = iso(today); const tm = new Date(today); tm.setDate(tm.getDate()+1); fd.value = iso(tm);
+document.querySelectorAll('.price').forEach(() => {});
+price.addEventListener('click', e => { const r = e.target.closest('.row'); if (!r) return; fs.value = r.querySelector('h3').textContent; });
+const form = document.getElementById('form'), err = document.getElementById('f-err'), done = document.getElementById('f-done');
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const name = document.getElementById('f-name').value.trim(), phone = document.getElementById('f-phone').value.trim();
+  const miss = [];
+  if (!fs.value) miss.push('eine Leistung'); if (!fd.value) miss.push('ein Datum'); if (!ft.value) miss.push('eine Uhrzeit');
+  if (!name) miss.push('deinen Namen'); if (phone.replace(/\D/g,'').length < 10) miss.push('eine Telefonnummer mit mindestens 10 Ziffern');
+  if (miss.length){ err.textContent = 'Bitte gib ' + miss.join(', ') + ' an.'; err.hidden = false; done.hidden = true; return; }
+  err.hidden = true;
+  const d = new Date(fd.value + 'T00:00');
+  document.getElementById('f-sum').textContent = `${name}, ${fs.value} · ${fm.value} · ${d.toLocaleDateString('de-DE',{day:'numeric',month:'long',weekday:'long'})}, ${ft.value} Uhr. Telefon: ${phone}.`;
+  done.hidden = false;
+});
+
+/* копирование телефона */
+document.getElementById('copy').addEventListener('click', e => {
+  const t = document.getElementById('phone').textContent, b = e.currentTarget;
+  const sel = () => { const r = document.createRange(); r.selectNodeContents(document.getElementById('phone')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Markiert'; };
+  try { navigator.clipboard.writeText(t).then(() => b.textContent = 'Kopiert', sel); } catch(_) { sel(); }
+});
+
+
+/* ================= анимации сайта ================= */
+// заголовки разделов: побуквенно
+document.querySelectorAll('.sec h2, .hs h2').forEach(h => {
+  let i = 0;
+  h.setAttribute('aria-label', h.textContent.replace(/\s+/g,' ').trim());
+  const walk = node => [...node.childNodes].forEach(ch => {
+    if (ch.nodeType === 1){ walk(ch); return; }
+    if (ch.nodeType !== 3) return;
+    const frag = document.createDocumentFragment();
+    ch.textContent.split(/(\s+)/).forEach(part => {
+      if (!part) return;
+      if (/^\s+$/.test(part)){ frag.appendChild(document.createTextNode(' ')); return; }
+      const w = document.createElement('span'); w.className = 'w2'; w.setAttribute('aria-hidden','true');
+      [...part].forEach(chr => { const c = document.createElement('span'); c.className = 'c2'; c.style.setProperty('--i', i++); c.textContent = chr; w.appendChild(c); });
+      frag.appendChild(w);
+    });
+    ch.replaceWith(frag);
+  });
+  walk(h); h.classList.add('rv');
+});
+// фото со шторкой
+document.querySelectorAll('.about-pic, .contacts-pic, .book-pic').forEach(f => { f.dataset.a = 'clip'; f.classList.add('parwrap'); f.querySelector('img').classList.add('par'); });
+document.querySelectorAll('.points li').forEach((li,k) => li.style.setProperty('--k', k));
+document.querySelectorAll('.member').forEach((m,k) => m.style.setProperty('--d', k*120 + 'ms'));
+document.querySelectorAll('.steps li').forEach((m,k) => m.style.setProperty('--d', k*150 + 'ms'));
+document.querySelectorAll('.faq details').forEach((d,k) => { d.classList.add('rv'); d.style.setProperty('--d', k*80 + 'ms'); });
+grid.querySelectorAll('.tile').forEach((t,k) => { t.classList.add('rv'); t.style.setProperty('--d', (k%3)*120 + Math.floor(k/3)*60 + 'ms'); });
+
+// прайс: строки выезжают по очереди при смене вкладки
+const _showCat = showCat;
+showCat = function(i){
+  _showCat(i);
+  if (reduce) return;
+  price.classList.add('swap');
+  price.querySelectorAll('.row').forEach((r,k) => r.style.setProperty('--k', k));
+  requestAnimationFrame(() => requestAnimationFrame(() => price.classList.remove('swap')));
+};
+document.querySelectorAll('[data-cat]').forEach(a => a.addEventListener('click', () => showCat(+a.dataset.cat)));
+// превью фото у курсора
+const PEEK = ['model-side','model-front','model-back','girl-portrait'];
+const peek = document.createElement('div'); peek.className = 'peek'; peek.setAttribute('aria-hidden','true'); peek.innerHTML = '<img alt="">';
+document.body.appendChild(peek);
+let px = 0, py = 0, tx = 0, ty = 0;
+price.addEventListener('pointermove', e => {
+  tx = e.clientX + 140; ty = e.clientY;
+  const sel = [...tabs.children].findIndex(b => b.getAttribute('aria-selected') === 'true');
+  const src = `assets/g/${PEEK[Math.max(0, sel)]}.webp`;
+  if (!peek.firstChild.src.endsWith(src)) peek.firstChild.src = src;
+  peek.classList.toggle('on', !!e.target.closest('.row'));
+});
+price.addEventListener('pointerleave', () => peek.classList.remove('on'));
+
+// бегущая строка, горизонтальные слайды, параллакс, прогресс
+const mq1 = document.getElementById('mq1'), mq2 = document.getElementById('mq2');
+[mq1, mq2].forEach(t => t.innerHTML += t.innerHTML);
+const hs = document.getElementById('directions'), hsTrack = document.getElementById('hsTrack'), hsBar = document.getElementById('hsBar'), hsCount = document.getElementById('hsCount');
+const pars = [...document.querySelectorAll('.par')], panels = [...hsTrack.querySelectorAll('.panel figure img')];
+const progressEl = document.createElement('div'); progressEl.className = 'progress'; document.body.appendChild(progressEl);
+const stepsEl = document.querySelector('.steps'), stepLis = [...stepsEl.children];
+function sizeHs(){ hs.style.height = (innerHeight + Math.max(0, hsTrack.scrollWidth - innerWidth)) + 'px'; }
+sizeHs(); addEventListener('resize', sizeHs);
+let mqx = 0, lastY = scrollY, vel = 0, lastT = performance.now();
+function anim(now){
+  const dt = Math.min(.05, (now - lastT)/1000); lastT = now;
+  const dy = scrollY - lastY; lastY = scrollY;
+  vel += ((dt > 0 ? dy/dt : 0) - vel)*.12;
+  if (!reduce){
+    mqx -= (60 + Math.min(900, Math.abs(vel))*.6)*dt;
+    const w1 = mq1.scrollWidth/2;
+    if (-mqx > w1) mqx += w1;
+    const skew = Math.max(-8, Math.min(8, vel*.006));
+    mq1.style.transform = `translateX(${mqx}px) skewX(${-skew}deg)`;
+    mq2.style.transform = `translateX(${-w1 - mqx}px) skewX(${skew}deg)`;
+  }
+  // горизонтальные слайды
+  const r = hs.getBoundingClientRect(), total = hs.offsetHeight - innerHeight;
+  const k = total > 0 ? Math.min(1, Math.max(0, -r.top/total)) : 0;
+  const shift = Math.max(0, hsTrack.scrollWidth - innerWidth)*k;
+  hsTrack.style.transform = `translateX(${-shift}px)`;
+  hsBar.style.transform = `scaleX(${k})`;
+  hsCount.innerHTML = `<b>${String(Math.min(4, Math.floor(k*3.999) + 1)).padStart(2,'0')}</b> / 04`;
+  if (!reduce) panels.forEach(img => { const b = img.getBoundingClientRect(); const c = (b.left + b.width/2)/innerWidth - .5; img.style.transform = `translateX(${(-c*40).toFixed(1)}px)`; });
+  // параллакс фото
+  if (!reduce) pars.forEach(img => { const b = img.parentElement.getBoundingClientRect(); if (b.bottom < 0 || b.top > innerHeight) return; const c = (b.top + b.height/2)/innerHeight - .5; img.style.transform = `translateY(${(-c*8).toFixed(2)}%)`; });
+  // линия шагов
+  const sb = stepsEl.getBoundingClientRect();
+  const sp = Math.min(1, Math.max(0, (innerHeight*.85 - sb.top)/(innerHeight*.5)));
+  stepsEl.style.setProperty('--sp', sp.toFixed(3));
+  stepLis.forEach((li,i) => li.classList.toggle('lit', sp >= i/4 + .02));
+  // полоска прогресса
+  const doc = document.documentElement.scrollHeight - innerHeight;
+  progressEl.style.transform = `scaleX(${doc > 0 ? scrollY/doc : 0})`;
+  // превью у курсора
+  px += (tx - px)*.18; py += (ty - py)*.18;
+  peek.style.left = px + 'px'; peek.style.top = py + 'px';
+  requestAnimationFrame(anim);
+}
+requestAnimationFrame(anim);
+
+/* появление блоков */
+if (!reduce && 'IntersectionObserver' in window){
+  const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting){ en.target.classList.remove('pre'); io.unobserve(en.target); } }), {rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.rv').forEach(el => { if (el.getBoundingClientRect().top > innerHeight){ el.classList.add('pre'); io.observe(el); } });
+}
+})();
+</script>
+
+</body>
+</html>
